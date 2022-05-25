@@ -20,18 +20,14 @@
  *
  */
 
-export class UrlSearchParamsHelper<
-  T extends Record<string, string> = Record<string, string>
-> {
+export class UrlSearchParamsHelper<T extends string> {
   urlSearchParams: URLSearchParams;
 
   constructor(queryUrl = "") {
     this.urlSearchParams = new URLSearchParams(queryUrl);
   }
 
-  static create<K extends Record<string, string> = Record<string, string>>(
-    queryUrl = ""
-  ): UrlSearchParamsHelper<K> {
+  static create<K extends string>(queryUrl = ""): UrlSearchParamsHelper<K> {
     return new UrlSearchParamsHelper<K>(queryUrl);
   }
 
@@ -165,7 +161,7 @@ export class UrlSearchParamsHelper<
    *
    */
 
-  removeParamList(paramsList: (keyof T)[]): UrlSearchParamsHelper<T> {
+  removeParamList(paramsList: (T| undefined)[]): UrlSearchParamsHelper<T> {
     paramsList.forEach((key) => {
       this.urlSearchParams.delete(key as string);
     });
@@ -237,7 +233,7 @@ export class UrlSearchParamsHelper<
    */
 
   addOrReplaceParamList(
-    paramsList?: { key: string; value: string }[]
+    paramsList?: { key: string | undefined; value: string }[]
   ): UrlSearchParamsHelper<T> {
     if (!paramsList || paramsList.length === 0) {
       return this;

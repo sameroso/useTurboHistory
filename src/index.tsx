@@ -1,55 +1,81 @@
 import { useCallback, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import {
+  GenericFunction,
+  NavigatePropsType,
+  NavigateAdditionaPropsType,
+  Search,
+  NavigateParamsType,
+} from "./types";
+import { useNavigate as useRRDNavigate, useLocation } from "react-router-dom";
 import { UrlSearchParamsHelper } from "./urlSearchParamsHelper";
 
-interface Props<T extends string> {
-  pathname?: string;
-  hash?: string;
-  search?: T | Record<T, string>;
-  replace?: boolean;
-  state?: any;
-  removeParams: T[];
-  replaceParams: { key: T; value: string }[];
-}
-
-function useNav<T extends string>() {
+function useNavigate<T extends string | undefined = undefined>() {
   const location = useLocation();
-  const _navigate = useNavigate();
+  const RRDNavigate = useRRDNavigate();
 
   const helpers = UrlSearchParamsHelper.create(location.search);
 
   const searchOj = useMemo(
     () => helpers.allParams,
     [location.search]
-  ) as Record<T, string>;
+  ) as T extends string ? Record<T, string> : Record<string, string>;
 
-  const navigate = useCallback((params?: Props<T>) => {
-    const values = Object.entries(params?.search || {}).map((item) => {
-      const [key, value] = item;
-      return {
-        key,
-        value,
-      };
-    });
+  const navigate = useCallback(
+    <S extends string | NavigateParamsType<K, T>, K extends Search<T>>(
+      params: S extends string
+        ? string
+        : K extends GenericFunction
+        ? NavigatePropsType<K, T>
+        : NavigatePropsType<K, T>,
+      params2?: NavigateAdditionaPropsType
+    ) => {
+      let navigateParams: NavigateParamsType<K, T>;
 
-    const parsedParams = UrlSearchParamsHelper.create()
-      .addOrReplaceParamList(values)
-      .removeParamList(params?.removeParams || [])
-      .addOrReplaceParamList(params?.replaceParams || []).urlSearchParamsString;
+      if (typeof params === "string") {
+        navigateParams = params;
+      } else {
+        let parsedParams: string | Record<string, string>;
 
-    _navigate(
-      {
-        pathname: params?.pathname || location.pathname,
-        hash: params?.hash,
-        search:
-          typeof params?.search === "string" ? params.search : parsedParams,
-      },
-      {
-        state: params?.state,
-        replace: params?.replace,
+        if (typeof params.search === "string") {
+          parsedParams = params.search;
+
+          parsedParams = UrlSearchParamsHelper.create()
+            .removeParamList(params?.removeParams || [])
+            .addOrReplaceParamList(
+              params?.replaceParams || []
+            ).urlSearchParamsString;
+        } else {
+          const values = Object.entries(
+            typeof params?.search === "function"
+              ? params.search(searchOj)
+              : params.search || {}
+          ).map((item) => {
+            const [key, value] = item;
+            return {
+              key: key,
+              value: value || "",
+            };
+          });
+
+          parsedParams = UrlSearchParamsHelper.create()
+            .addOrReplaceParamList(values)
+            .removeParamList(params?.removeParams || [])
+            .addOrReplaceParamList(
+              params?.replaceParams || []
+            ).urlSearchParamsString;
+        }
+
+        navigateParams = {
+          search: parsedParams,
+          pathname: params?.pathname,
+          hash: params?.hash,
+        };
       }
-    );
-  }, []);
+
+      RRDNavigate(navigateParams, params2);
+    },
+    []
+  );
 
   return {
     navigate,
@@ -59,4 +85,4 @@ function useNav<T extends string>() {
   };
 }
 
-export default useNav;
+export default useNavigate;

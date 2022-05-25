@@ -1,33 +1,74 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import useNav from "../src/index";
+import { Linkster } from "../src/Link";
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 const App = () => {
-  const { navigate, searchOj, searchString, pathname } = useNav<
-    "samer" | "yellow"
-  >();
+  const { navigate, searchOj, searchString, pathname } = useNav<"kayali">();
+
 
   return (
-    <button
-      onClick={() =>
-        navigate({
-          search: searchOj,
-          pathname: pathname,
-          removeParams: ["samer"],
-          replaceParams: [{ key: "samer", value: "kayali" }],
-        })
-      }
-    >
-      samer
-    </button>
+    <>
+      <button
+        onClick={() =>
+          navigate({
+            search: {
+              kayali: "a$#(*($#ham",
+              ololo: "jones",
+              jamira: "coisa",
+              manu: "ela",
+            },
+            removeParams: ["ololo"],
+            replaceParams: [{ key: "ololo", value: "charmander" }],
+          })
+        }
+      >
+        samer
+      </button>
+      <Linkster
+        to={{
+          search: { samer: "kayali", log: "hehe" },
+          replaceParams: [{ key: "log", value: "jones" }],
+        }}
+      >
+        samer
+      </Linkster>
+    </>
   );
 };
 
 const App2 = () => {
-  console.log("olaaa");
-  return <div>ssssss</div>;
+  const { navigate, searchOj, searchString, pathname } = useNav<"kayali">();
+
+  return (
+    <>
+      <button
+        onClick={() =>
+          navigate(
+            {
+              search: "ololo=jamaica",
+              removeParams: ["ololo", "sa", "samer"],
+              replaceParams: [{ key: "ololo", value: "charmander" }],
+            },
+            { replace: true }
+          )
+        }
+      >
+        samer
+      </button>
+      <Linkster
+        to={{
+          search: { samer: "kayali", log: "hehe" },
+          removeParams: ["log"],
+          replaceParams: [{ key: "log", value: "jones" }],
+        }}
+      >
+        samer
+      </Linkster>
+    </>
+  );
 };
 
 const container = document.querySelector("#root") as Element;
@@ -35,7 +76,7 @@ const root = createRoot(container);
 root.render(
   <BrowserRouter>
     <Routes>
-      <Route path="/1" element={<App />} />
+      <Route path="/" element={<App />} />
       <Route path="/2" element={<App2 />} />
     </Routes>
   </BrowserRouter>
