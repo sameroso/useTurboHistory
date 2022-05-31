@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import useNav from "../src/index";
 import { Linkster } from "../src/Link";
@@ -6,22 +6,16 @@ import { Linkster } from "../src/Link";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 const App = () => {
-  const { navigate, searchOj, searchString, pathname } = useNav<"kayali">();
+  const { navigate, searchOj, searchString, pathname } = useNav();
 
+  console.log(searchOj);
 
   return (
     <>
       <button
         onClick={() =>
           navigate({
-            search: {
-              kayali: "a$#(*($#ham",
-              ololo: "jones",
-              jamira: "coisa",
-              manu: "ela",
-            },
-            removeParams: ["ololo"],
-            replaceParams: [{ key: "ololo", value: "charmander" }],
+            replaceParams: [{ key: "samer", value: "charmander" }],
           })
         }
       >
@@ -48,8 +42,8 @@ const App2 = () => {
         onClick={() =>
           navigate(
             {
-              search: "ololo=jamaica",
-              removeParams: ["ololo", "sa", "samer"],
+              search: "kayali=jamaica",
+              removeParams: ["kayali"],
               replaceParams: [{ key: "ololo", value: "charmander" }],
             },
             { replace: true }

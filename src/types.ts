@@ -6,13 +6,17 @@ export interface NavigateAdditionaPropsType {
 }
 
 export type Search<T> =
+  | T
   | string
   | Record<string, string>
   | ((
       props: Partial<Record<T extends string ? T : string, string>>
-    ) => Record<string, string | undefined>);
+    ) => Record<string, string>);
 
-export type NavigateParamsType<K, T extends string | undefined = undefined> =
+export type NavigateParamsType<
+  K extends Search<T>,
+  T extends string | undefined = undefined
+> =
   | string
   | (Omit<
       NavigatePropsType<K, T>,
@@ -22,22 +26,18 @@ export type NavigateParamsType<K, T extends string | undefined = undefined> =
     });
 
 export interface NavigatePropsType<
-  K extends string | GenericFunction | Partial<Record<string, string>>,
+  K extends Search<T>,
   T extends string | undefined = undefined
 > {
   pathname?: string;
   hash?: string;
-  search?: K extends string
-    ? string
-    : T extends string
-    ? Record<T, string> | K
-    : K;
+  search?: K;
 
-  removeParams?: K extends string
-    ? string[]
-    : K extends GenericFunction
-    ? (T | keyof ReturnType<K>)[]
-    : (keyof K | T)[];
+  removeParams?: K extends GenericFunction
+    ? (keyof ReturnType<K> | T)[]
+    : K extends Record<string, string>
+    ? (keyof K | T)[]
+    : (T extends string ? T : string)[];
 
   replaceParams?: {
     key: K extends string

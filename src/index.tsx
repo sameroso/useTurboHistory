@@ -1,6 +1,5 @@
 import { useCallback, useMemo } from "react";
 import {
-  GenericFunction,
   NavigatePropsType,
   NavigateAdditionaPropsType,
   Search,
@@ -18,15 +17,11 @@ function useNavigate<T extends string | undefined = undefined>() {
   const searchOj = useMemo(
     () => helpers.allParams,
     [location.search]
-  ) as T extends string ? Record<T, string> : Record<string, string>;
+  ) as Record<T extends string ? T : string, string>;
 
   const navigate = useCallback(
-    <S extends string | NavigateParamsType<K, T>, K extends Search<T>>(
-      params: S extends string
-        ? string
-        : K extends GenericFunction
-        ? NavigatePropsType<K, T>
-        : NavigatePropsType<K, T>,
+    <K extends Search<T>>(
+      params: NavigatePropsType<K, T>,
       params2?: NavigateAdditionaPropsType
     ) => {
       let navigateParams: NavigateParamsType<K, T>;
