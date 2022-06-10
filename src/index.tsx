@@ -5,7 +5,7 @@ import {
   Search,
   NavigateParamsType,
 } from "./types";
-import { useNavigate as useRRDNavigate, useLocation } from "react-router-dom";
+import { useNavigate as useRRDNavigate, useLocation } from "react-router-dom-v6";
 import { UrlSearchParamsHelper } from "./urlSearchParamsHelper";
 
 function useNavigate<T extends string | undefined = undefined>() {

@@ -3,12 +3,34 @@ import { createRoot } from "react-dom/client";
 import useNav from "../src/index";
 import { Linkster } from "../src/Link";
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+} from "react-router-dom-v6";
+
+import { useHistory } from "react-router-dom";
+
+import { wrapper } from "../src/agnostic";
+
+const modifier = {
+  history: (history: any) => history,
+  navigate: () => {},
+};
+
+const useX = () => {
+  const history = useHistory();
+
+  const stetroidsHistory = wrapper(navigate, location);
+  return { stetroidsHistory };
+};
 
 const App = () => {
   const { navigate, searchOj, searchString, pathname } = useNav();
 
-  console.log(searchOj);
+  const { navigate } = modifier;
 
   return (
     <>
