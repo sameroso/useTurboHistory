@@ -1,90 +1,133 @@
-export type Pathname = string;
-export type Search = string;
-export type Hash = string;
-export type Key = string;
+import {
+  NavigateFunction,
+  Location,
+  NavigateOptions,
+  Path,
+} from "react-router-dom-v6";
+import { RouterProps } from "react-router-dom";
+import { UrlSearchParamsHelper } from "./urlSearchParamsHelper";
 
-export interface Path {
-  pathname: Pathname;
-  search: Search;
-  hash: Hash;
+type CustomPath<TParams extends string | undefined = undefined> = Partial<
+  Omit<Path, "search"> & {
+    search:
+      | string
+      | Record<string, string>
+      | ((
+          props: Record<TParams extends string ? TParams : string, string>
+        ) => Record<string, string>);
+    clearPrevousParams: boolean;
+    removeParams: string[];
+  }
+>;
+
+type History = RouterProps["history"];
+
+interface V6Response<TParams extends string | undefined = undefined> {
+  push(to: CustomPath<TParams>, navigateOptions?: NavigateOptions): void;
+  push(to: string, navigateOptions?: NavigateOptions): void;
+  paramsObj: Record<TParams extends string ? TParams : string, string>;
 }
 
-type To = string | Partial<Path>;
-
-export interface NavigateOptions {
-  replace?: boolean;
-  state?: any;
+interface HistoryResponse<
+  TParams extends string | undefined = undefined,
+  TState = unknown
+> {
+  push(to: CustomPath<TParams>, state?: TState): void;
+  push(to: string, state?: TState): void;
+  paramsObj: Record<TParams extends string ? TParams : string, string>;
 }
 
-interface NavigateFunction {
-  (to: To, options: NavigateOptions): void;
-  (delta: number): void;
+function mapObjectToKeyValue(obj: any) {
+  return Object.entries(obj).map((item) => {
+    const [key, value] = item;
+    return {
+      key: key,
+      value: value as string,
+    };
+  });
 }
 
-////////////////////// History V5
+export function wrapper<TParams extends string | undefined = undefined>(
+  method: NavigateFunction,
+  location: Location
+): V6Response<TParams>;
+export function wrapper<
+  TParams extends string | undefined = undefined,
+  TState = unknown
+>(method: History): HistoryResponse<TParams, TState>;
+export function wrapper<TNavigate extends History | NavigateFunction>(
+  method: TNavigate,
+  location?: Location
+) {
+  if (typeof method === "function") {
+    const paramsObj = UrlSearchParamsHelper.create(
+      (location as Location).search
+    ).allParams;
 
-export interface LocationDescriptorObject<S = LocationState> {
-  pathname?: Pathname;
-  search?: Search;
-  state?: S;
-  hash?: Hash;
-  key?: LocationKey;
-}
+    const push = (
+      to: string | CustomPath,
+      navigateOptions: NavigateOptions
+    ) => {
+      if (typeof to === "string") {
+        method(to, navigateOptions);
+        return;
+      }
 
-export type Action = "PUSH" | "POP" | "REPLACE";
-export type LocationState = unknown;
-export type LocationKey = string;
-export type LocationDescriptor<S = LocationState> =
-  | string
-  | LocationDescriptorObject<S>;
-export type UnregisterCallback = () => void;
-export type Href = string;
-export type TransitionPromptHook<S = LocationState> = (
-  location: Location<S>,
-  action: Action
-) => string | false | void;
-export type LocationListener<S = LocationState> = (
-  location: Location<S>,
-  action: Action
-) => void;
+      if (typeof to.search === "string") {
+        method(to as Partial<Path>, navigateOptions);
+        return;
+      }
 
-export interface Location<S = LocationState> {
-  pathname: Pathname;
-  search: Search;
-  state: S;
-  hash: Hash;
-  key?: LocationKey;
-}
+      const values = mapObjectToKeyValue(
+        typeof to.search === "function"
+          ? to.search(paramsObj) || {}
+          : to.search || {}
+      );
 
-export interface History<HistoryLocationState = LocationState> {
-  length: number;
-  action: Action;
-  location: Location<HistoryLocationState>;
-  push(path: string, state?: HistoryLocationState): void;
-  push(location: LocationDescriptor<HistoryLocationState>): void;
-  replace(path: string, state?: HistoryLocationState): void;
-  replace(location: LocationDescriptor<HistoryLocationState>): void;
-  go(n: number): void;
-  goBack(): void;
-  goForward(): void;
-  block(
-    prompt?: boolean | string | TransitionPromptHook<HistoryLocationState>
-  ): UnregisterCallback;
-  listen(listener: LocationListener<HistoryLocationState>): UnregisterCallback;
-  createHref(location: LocationDescriptorObject<HistoryLocationState>): Href;
-}
+      const path = UrlSearchParamsHelper.create(
+        to.clearPrevousParams ? "" : (location as Location).search
+      )
+        .addOrReplaceParamList(values || [])
+        .removeParamList(to.removeParams || []).urlSearchParamsString;
 
-export const wrapper =
-  <TNavigate extends History | NavigateFunction>(method: TNavigate) =>
-  (
-    path: TNavigate extends History
-      ? string | LocationDescriptor
-      : string | Path,
-    options: TNavigate extends NavigateFunction ? NavigateOptions : never
-  ) => {
-    if (typeof method === "function") {
-      method(path, options);
-    } else {
-      return { push: method.push };
+      method({ ...to, search: path }, navigateOptions);
+    };
+
+    return {
+      push,
+      paramsObj,
+    } as V6Response;
+  }
+
+  const paramsObj = UrlSearchParamsHelper.create(
+    method.location.search
+  ).allParams;
+
+  const push = (to: string | CustomPath, state: unknown) => {
+    if (typeof to === "string") {
+      method.push(to, state);
+      return;
     }
+
+    if (typeof to.search === "string") {
+      method.push(to as Partial<Path>, state);
+      return;
+    }
+
+    const values = mapObjectToKeyValue(
+      typeof to.search === "function"
+        ? to.search(paramsObj) || {}
+        : to.search || {}
+    );
+
+    const path = UrlSearchParamsHelper.create(
+      to.clearPrevousParams ? "" : method.location.search
+    )
+      .addOrReplaceParamList(values)
+      .removeParamList(to.removeParams || []).urlSearchParamsString;
+
+    method.push({ ...to, search: path }, state);
   };
+
+  return { push, paramsObj } as HistoryResponse;
+}
