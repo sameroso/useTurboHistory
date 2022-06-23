@@ -17,6 +17,7 @@
     "react-router-dom-v6": "npm:react-router-dom@6"
   },
   "scripts": {
-    "dev": "parcel playground/index.html -p 3000"
+    "dev:v6": "parcel playground/V6/index.html -p 3000",
+    "dev:history": "parcel playground/History/index.html -p 3001"
   }
 }

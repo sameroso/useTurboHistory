@@ -4,38 +4,9 @@ import {
   NavigateOptions,
   Path,
 } from "react-router-dom-v6";
-import { RouterProps } from "react-router-dom";
 import { UrlSearchParamsHelper } from "./urlSearchParamsHelper";
-
-type CustomPath<TParams extends string | undefined = undefined> = Partial<
-  Omit<Path, "search"> & {
-    search:
-      | string
-      | Record<string, string>
-      | ((
-          props: Record<TParams extends string ? TParams : string, string>
-        ) => Record<string, string>);
-    clearPrevousParams: boolean;
-    removeParams: string[];
-  }
->;
-
-type History = RouterProps["history"];
-
-interface V6Response<TParams extends string | undefined = undefined> {
-  push(to: CustomPath<TParams>, navigateOptions?: NavigateOptions): void;
-  push(to: string, navigateOptions?: NavigateOptions): void;
-  paramsObj: Record<TParams extends string ? TParams : string, string>;
-}
-
-interface HistoryResponse<
-  TParams extends string | undefined = undefined,
-  TState = unknown
-> {
-  push(to: CustomPath<TParams>, state?: TState): void;
-  push(to: string, state?: TState): void;
-  paramsObj: Record<TParams extends string ? TParams : string, string>;
-}
+import { History, CustomHistoryPath, HistoryResponse } from "./historyTypes";
+import { V6Response } from "./V6Types";
 
 function mapObjectToKeyValue(obj: any) {
   return Object.entries(obj).map((item) => {
@@ -47,63 +18,49 @@ function mapObjectToKeyValue(obj: any) {
   });
 }
 
-export function wrapper<TParams extends string | undefined = undefined>(
-  method: NavigateFunction,
-  location: Location
-): V6Response<TParams>;
-export function wrapper<
-  TParams extends string | undefined = undefined,
-  TState = unknown
->(method: History): HistoryResponse<TParams, TState>;
-export function wrapper<TNavigate extends History | NavigateFunction>(
-  method: TNavigate,
-  location?: Location
-) {
-  if (typeof method === "function") {
-    const paramsObj = UrlSearchParamsHelper.create(
-      (location as Location).search
-    ).allParams;
+function getV6Params(method: NavigateFunction, location: Location) {
+  const paramsObj = UrlSearchParamsHelper.create(
+    (location as Location).search
+  ).allParams;
 
-    const push = (
-      to: string | CustomPath,
-      navigateOptions: NavigateOptions
-    ) => {
-      if (typeof to === "string") {
-        method(to, navigateOptions);
-        return;
-      }
+  const push = (
+    to: string | CustomHistoryPath,
+    navigateOptions: NavigateOptions
+  ) => {
+    if (typeof to === "string" || typeof to.search === "string") {
+      method(to as string | Partial<Path>, navigateOptions);
+      return;
+    }
 
-      if (typeof to.search === "string") {
-        method(to as Partial<Path>, navigateOptions);
-        return;
-      }
+    const values = mapObjectToKeyValue(
+      typeof to.search === "function"
+        ? to.search(paramsObj) || {}
+        : to.search || {}
+    );
 
-      const values = mapObjectToKeyValue(
-        typeof to.search === "function"
-          ? to.search(paramsObj) || {}
-          : to.search || {}
-      );
+    const path = UrlSearchParamsHelper.create(
+      to.clearPreviousParams ? "" : (location as Location).search
+    )
+      .addOrReplaceParamList(values || [])
+      .removeParamList(to.removeParams || []).urlSearchParamsString;
 
-      const path = UrlSearchParamsHelper.create(
-        to.clearPrevousParams ? "" : (location as Location).search
-      )
-        .addOrReplaceParamList(values || [])
-        .removeParamList(to.removeParams || []).urlSearchParamsString;
+    method({ ...to, search: path }, navigateOptions);
+  };
 
-      method({ ...to, search: path }, navigateOptions);
-    };
+  return {
+    push,
+    paramsObj,
+    location: location,
+    navigate: method,
+  } as V6Response;
+}
 
-    return {
-      push,
-      paramsObj,
-    } as V6Response;
-  }
-
+function getHistoryParams(method: History) {
   const paramsObj = UrlSearchParamsHelper.create(
     method.location.search
   ).allParams;
 
-  const push = (to: string | CustomPath, state: unknown) => {
+  const push = (to: string | CustomHistoryPath, state: unknown) => {
     if (typeof to === "string") {
       method.push(to, state);
       return;
@@ -121,13 +78,30 @@ export function wrapper<TNavigate extends History | NavigateFunction>(
     );
 
     const path = UrlSearchParamsHelper.create(
-      to.clearPrevousParams ? "" : method.location.search
+      to.clearPreviousParams ? "" : method.location.search
     )
       .addOrReplaceParamList(values)
       .removeParamList(to.removeParams || []).urlSearchParamsString;
 
     method.push({ ...to, search: path }, state);
   };
+  return { push, paramsObj, history: method } as HistoryResponse;
+}
 
-  return { push, paramsObj } as HistoryResponse;
+export function wrapper<TParams extends string | undefined = undefined>(
+  method: NavigateFunction,
+  location: Location
+): V6Response<TParams>;
+export function wrapper<TParams extends { params?: string; state?: unknown }>(
+  method: History
+): HistoryResponse<TParams>;
+export function wrapper<TNavigate extends History | NavigateFunction>(
+  method: TNavigate,
+  location?: Location
+) {
+  if (typeof method === "function") {
+    return getV6Params(method, location as Location);
+  }
+
+  return getHistoryParams(method);
 }
