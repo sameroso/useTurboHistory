@@ -1,7 +1,5 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import useNav from "../../src/index";
-import { Linkster } from "../../src/Link";
 
 import { useHistory, BrowserRouter, Route } from "react-router-dom";
 
